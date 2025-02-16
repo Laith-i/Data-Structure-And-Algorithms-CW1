@@ -38,11 +38,12 @@ public class ContactsHashOpen implements IContactDB {
     }
 
     private int hash(String s) {
-        assert  s != null && !s.trim().equals(""); 
-        
-        // VERY BAD HASH FUNCTION -- you must improve on this
-        
-        return Math.abs((s.charAt(0)) % table.length);   
+
+        int hashing_Value = 0;
+        for (int i = 0; i < s.length(); i++) {
+            hashing_Value = (hashing_Value << 17) ^ s.charAt(i);
+        }
+        return Math.abs(hashing_Value) % table.length;
         
     }
 
