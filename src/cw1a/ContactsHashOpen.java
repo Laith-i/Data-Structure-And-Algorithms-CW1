@@ -5,14 +5,14 @@ package cw1a;
  * @author DL 2025-01
  */
 public class ContactsHashOpen implements IContactDB {  
-    private final int initialTableCapacity = 1000;
+    private final int initialTableCapacity = 991;
     private Contact[] table;
     private int tableCapacity;
     private int numEntries;
     private int totalVisited = 0;
     
 
-    private static final double maxLoadFactor = 70.0;
+    private static final double maxLoadFactor = 50.0;
             
     public int getNumEntries(){return numEntries;}
     public void resetTotalVisited() {totalVisited = 0;}
@@ -47,24 +47,28 @@ public class ContactsHashOpen implements IContactDB {
         
     }
 
-    private double loadFactor() {
-        return (double) numEntries / (double) table.length * 100.0; 
-        // note need for cast to double
+    public double loadFactor() {
+        double loadFactorValue = (double) numEntries / table.length * 100.0;
+        System.out.printf("Current load factor: %.2f%%\n", loadFactorValue);
+        return loadFactorValue;
     }
 
     private int findPos(String name) {
         assert name != null && !name.trim().equals("");
-        int pos = hash(name);
-        int numVisited = 1;  
-        System.out.println("finding " + pos + ": " + name );
+        int intialpPos = hash(name);
+        int pos = intialpPos;
+        int numVisited = 1;
+        System.out.println("finding " + pos + ": " + name);
         while (table[pos] != null && !name.equals(table[pos].getName())) {
-           System.out.println("Visiting bucket " + pos + ": " + table[pos] );
-           numVisited++;
-           pos = (pos + 1) % table.length; // linear probing
-        }  
-        System.out.println("number of  buckets visited = " + numVisited);
+            System.out.println("Visiting bucket " + pos + ": " + table[pos]);
+            numVisited++;
+            pos = (intialpPos + (numVisited - 1) * (numVisited - 1)) % table.length;
+            if (pos < 0) {
+                pos += table.length;
+            }
+        }
+        System.out.println("number of buckets visited = " + numVisited);
         totalVisited += numVisited;
-      
         assert table[pos] == null || name.equals(table[pos].getName());
         return pos;
     }
@@ -180,8 +184,9 @@ public class ContactsHashOpen implements IContactDB {
      */
     public void displayDB() {
         // not yet ordered
+        double currentLoad = (double) numEntries / table.length * 100.0;
         System.out.println("capacity " + table.length + " size " + numEntries
-                + " Load factor " + loadFactor() + "%");
+                + " Load factor " + String.format("%.2f%%", currentLoad));
         for (int i = 0; i != table.length; i++) {
             if (table[i] != null) 
                 System.out.println(i + " " + table[i].toString());

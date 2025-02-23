@@ -79,6 +79,7 @@ public class CW1 {
                 case 'S':
                 case 's':  //size
                     System.out.println("Size " + db.size());
+                    db.loadFactor();
                     break;
                     
                 case 'G':
@@ -189,6 +190,7 @@ public class CW1 {
                 System.out.printf("average number of  buckets visited =  %.2f", 
                   totalVisited /(double)db.getNumEntries());
         System.out.println();
+        db.loadFactor();
             }
         } catch (FileNotFoundException ex) {
             System.out.println("Can't open chosen file " + fileName);

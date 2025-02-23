@@ -78,5 +78,7 @@ public interface IContactDB {
      * @pre true
      */
     public void displayDB();
+
+    double loadFactor();
 }
 
