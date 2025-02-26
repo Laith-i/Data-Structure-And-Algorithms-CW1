@@ -10,10 +10,8 @@ public class ContactsHashOpen implements IContactDB {
     private int tableCapacity;
     private int numEntries;
     private int totalVisited = 0;
-    
-
+    private static final Contact Deleted_Entry = new Contact("Removed", "Removed");
     private static final double maxLoadFactor = 50.0;
-            
     public int getNumEntries(){return numEntries;}
     public void resetTotalVisited() {totalVisited = 0;}
     public int getTotalVisited() {return totalVisited;}
@@ -27,7 +25,7 @@ public class ContactsHashOpen implements IContactDB {
 
     /**
      * Empties the database.
-     *
+     * note : anagram
      * @pre true
      */
     public void clearDB() {
@@ -46,11 +44,68 @@ public class ContactsHashOpen implements IContactDB {
         return Math.abs(hashing_Value) % table.length;
         
     }
+    /**
+     * Helper for the newly implemented remove function
+     */
+    private int locateIndexForLookup(String name) {
+        int hashedIndex = hash(name);
+        int currentIndex = hashedIndex;
+        int probeStep = 1;
+        int visitedCount = 0; // Local counter for debugging
+
+        while (table[currentIndex] != null) {
+            visitedCount++;
+            System.out.println("Visited bucket " + currentIndex + ": " + table[currentIndex]);
+            if (table[currentIndex] != Deleted_Entry && table[currentIndex].getName().equals(name)) {
+                System.out.println("Total buckets visited in search: " + visitedCount);
+                return currentIndex;
+            }
+            currentIndex = (hashedIndex + probeStep * probeStep) % table.length;
+            probeStep++;
+            if (probeStep == table.length) break;
+        }
+        System.out.println("Total buckets visited in search (not found): " + visitedCount);
+        return currentIndex;
+    }
+
+    /**
+     * Helper for the newly implemented remove function
+     */
+    private int locateIndexForInsertion(String name) {
+        int initialIndex = hash(name);
+        int currentIndex = initialIndex;
+        int probeStep = 1;
+        int firstDeletedIndex = -1;
+        int visitedCount = 0;
+
+        while (table[currentIndex] != null) {
+            visitedCount++;
+            System.out.println("Visited bucket " + currentIndex + ": " + table[currentIndex]);
+            if (table[currentIndex] == Deleted_Entry) {
+                if (firstDeletedIndex == -1) {
+                    firstDeletedIndex = currentIndex;
+                }
+            } else if (table[currentIndex].getName().equals(name)) {
+                totalVisited += visitedCount;
+                return currentIndex;
+            }
+            currentIndex = (initialIndex + probeStep * probeStep) % table.length;
+            probeStep++;
+            if (probeStep == table.length) break;
+        }
+        totalVisited += visitedCount;
+        return (firstDeletedIndex != -1) ? firstDeletedIndex : currentIndex;
+    }
+
 
     public double loadFactor() {
-        double loadFactorValue = (double) numEntries / table.length * 100.0;
+        /**double loadFactorValue = (double) numEntries / table.length * 100.0;
         System.out.printf("Current load factor: %.2f%%\n", loadFactorValue);
         return loadFactorValue;
+
+         note: load factor Debuger
+         */
+        return (double) numEntries / table.length * 100.0;
     }
 
     private int findPos(String name) {
@@ -97,14 +152,11 @@ public class ContactsHashOpen implements IContactDB {
     @Override
     public Contact get(String name) {
         assert name != null && !name.trim().equals("");
-        Contact result;
-        int pos = findPos(name);       
-        if (table[pos] == null) {
-            result = null; // not found
-        } else {
-            result = table[pos];
+        int pos = locateIndexForLookup(name);
+        if (table[pos] != null && table[pos] != Deleted_Entry && table[pos].getName().equals(name)) {
+            return table[pos];
         }
-        return result;
+        return null;
     }
 
     /**
@@ -135,8 +187,7 @@ public class ContactsHashOpen implements IContactDB {
          table[pos] = contact;
          numEntries++;
       } else {
-         table[pos] = contact; // overwriting 
-         
+         table[pos] = contact;
       }
       return previous;
    }
@@ -151,14 +202,24 @@ public class ContactsHashOpen implements IContactDB {
      */
     public Contact put(Contact contact) {
         assert contact != null;
-       Contact previous;
         String name = contact.getName();
         assert name != null && !name.trim().equals("");
-        previous =  putWithoutResizing(contact);
-        if (previous == null && loadFactor() > maxLoadFactor) resizeTable();
+
+        int pos = locateIndexForInsertion(name);
+        Contact previous = null;
+        if (table[pos] == null || table[pos] == Deleted_Entry) {
+            table[pos] = contact;
+            numEntries++;
+        } else {
+            previous = table[pos];
+            table[pos] = contact;
+        }
+
+        if (previous == null && loadFactor() > maxLoadFactor) {
+            resizeTable();
+        }
         return previous;
     }
-
     /**
      * Removes and returns a contact from the database, with the key the
      * supplied name.
@@ -167,13 +228,18 @@ public class ContactsHashOpen implements IContactDB {
      * @pre name not null or empty string
      * @return the removed contact object mapped to the name, or null if the
      * name does not exist.
+     * note: use two arrays and set it to a boolean all true, when it is deleted then set it as false or set it as deleted entry and remove it
      */
     public Contact remove(String name) {
         assert name != null && !name.trim().equals("");
         int pos = findPos(name);
-        System.out.println("remove not yet implemented");
-        
-        return null;
+        if (table[pos] == null || table[pos] == Deleted_Entry) {
+            return null;
+        }
+        Contact removedContact = table[pos];
+        table[pos] = Deleted_Entry;
+        numEntries--;
+        return removedContact;
     }
 
     /**
@@ -187,25 +253,28 @@ public class ContactsHashOpen implements IContactDB {
         double currentLoad = (double) numEntries / table.length * 100.0;
         System.out.println("capacity " + table.length + " size " + numEntries
                 + " Load factor " + String.format("%.2f%%", currentLoad));
-        for (int i = 0; i != table.length; i++) {
-            if (table[i] != null) 
+        for (int i = 0; i < table.length; i++) {
+            if (table[i] == null || table[i] == Deleted_Entry) {
+                System.out.println(i + " " + "_____");
+            } else {
                 System.out.println(i + " " + table[i].toString());
-            else
-                 System.out.println(i + " " + "_____");
             }
-        
-        
-        Contact[] toBeSortedTable = new Contact[tableCapacity];  // OK to use Array.sort
+        }
+
+
+        Contact[] validContacts = new Contact[numEntries]; // OK to use Array.sort
         int j = 0;
-        for (int i = 0; i != table.length; i++) {
-            if (table[i] != null) {
-                toBeSortedTable[j] = table[i];
+        for (int i = 0; i < table.length; i++) {
+            if (table[i] != null && table[i] != Deleted_Entry) {
+                validContacts[j] = table[i];
                 j++;
             }
         }
-        quicksort(toBeSortedTable, 0, j - 1);
-        for (int i = 0; i != j; i++) {
-            System.out.println(i + " " + " " + toBeSortedTable[i].toString());
+
+
+        quicksort(validContacts, 0, j - 1);
+        for (int i = 0; i < j; i++) {
+            System.out.println(i + " " + validContacts[i].toString());
         }
     }
 
@@ -231,22 +300,35 @@ public class ContactsHashOpen implements IContactDB {
         }
     }
 
-    private void resizeTable() { // mkae a new table of greater capacity and rehashes old values into it
-        System.out.println("RESIZING");
-        Contact[] oldTable = table; // copy the reference
-        int oldTableCapacity = tableCapacity;
-        tableCapacity = oldTableCapacity * 2;
-        System.out.println("resizing to " + tableCapacity);
-        table = new Contact[tableCapacity]; // make a new tyable
-        
-        clearDB();
+    private void resizeTable() {
+        Contact[] oldTable = table;
+        int oldCapacity = table.length;
+        int newCapacity = nextPrime(2 * oldCapacity);
+        table = new Contact[newCapacity];
         numEntries = 0;
-        for (int i = 0; i != oldTableCapacity; i++) {
-            if (oldTable[i] != null) { // dleted vakues not hashed across
-                putWithoutResizing(oldTable[i]);
+
+        for (int i = 0; i < oldCapacity; i++) {
+            if (oldTable[i] != null && oldTable[i] != Deleted_Entry) {
+                put(oldTable[i]);
             }
         }
-        
+    }
+
+    // Helper method: returns the next prime number >= n.
+    private int nextPrime(int n) {
+        while (!isPrime(n)) {
+            n++;
+        }
+        return n;
+    }
+
+    // Simple prime check.
+    private boolean isPrime(int n) {
+        if (n <= 1) return false;
+        for (int i = 2; i * i <= n; i++) {
+            if (n % i == 0) return false;
+        }
+        return true;
     }
 } 
 

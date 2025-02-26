@@ -187,10 +187,10 @@ public class CW1 {
                 text.close();
                 totalVisited = db.getTotalVisited();
                 System.out.println("total number of  buckets visited = " + totalVisited);
-                System.out.printf("average number of  buckets visited =  %.2f", 
+                System.out.printf("average number of  buckets visited =  %.2f\n",
                   totalVisited /(double)db.getNumEntries());
-        System.out.println();
-        db.loadFactor();
+                double finalLoad = db.loadFactor();
+                System.out.printf("load factor: %.2f%%\n", finalLoad);
             }
         } catch (FileNotFoundException ex) {
             System.out.println("Can't open chosen file " + fileName);
@@ -198,4 +198,6 @@ public class CW1 {
     }
 
 }
-
+/**
+ * note: at the end return the main file to its orginial remove the loadFactor debugger
+ */
