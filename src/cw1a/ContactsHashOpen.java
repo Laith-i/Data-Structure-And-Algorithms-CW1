@@ -10,8 +10,11 @@ public class ContactsHashOpen implements IContactDB {
     private int tableCapacity;
     private int numEntries;
     private int totalVisited = 0;
-    private static final Contact Deleted_Entry = new Contact("Removed", "Removed");
+
+
     private static final double maxLoadFactor = 50.0;
+    private static final Contact Deleted_Entry = new Contact("Removed", "Removed");
+
     public int getNumEntries(){return numEntries;}
     public void resetTotalVisited() {totalVisited = 0;}
     public int getTotalVisited() {return totalVisited;}
@@ -25,8 +28,8 @@ public class ContactsHashOpen implements IContactDB {
 
     /**
      * Empties the database.
-     * note : anagram
      * @pre true
+     * note : keep in mind of anagrams
      */
     public void clearDB() {
         for (int i = 0; i != table.length; i++) {
@@ -187,7 +190,7 @@ public class ContactsHashOpen implements IContactDB {
          table[pos] = contact;
          numEntries++;
       } else {
-         table[pos] = contact;
+         table[pos] = contact; //overwriting
       }
       return previous;
    }
@@ -215,9 +218,7 @@ public class ContactsHashOpen implements IContactDB {
             table[pos] = contact;
         }
 
-        if (previous == null && loadFactor() > maxLoadFactor) {
-            resizeTable();
-        }
+        if (previous == null && loadFactor() > maxLoadFactor) resizeTable();
         return previous;
     }
     /**
@@ -228,7 +229,7 @@ public class ContactsHashOpen implements IContactDB {
      * @pre name not null or empty string
      * @return the removed contact object mapped to the name, or null if the
      * name does not exist.
-     * note: use two arrays and set it to a boolean all true, when it is deleted then set it as false or set it as deleted entry and remove it
+     * note: possible ways to implement it: use two arrays and set it to a boolean all true, when it is deleted then set it as false or set it as deleted entry and remove it
      */
     public Contact remove(String name) {
         assert name != null && !name.trim().equals("");
@@ -262,19 +263,19 @@ public class ContactsHashOpen implements IContactDB {
         }
 
 
-        Contact[] validContacts = new Contact[numEntries]; // OK to use Array.sort
+        Contact[] toBeSortedTable = new Contact[numEntries]; // OK to use Array.sort
         int j = 0;
         for (int i = 0; i < table.length; i++) {
             if (table[i] != null && table[i] != Deleted_Entry) {
-                validContacts[j] = table[i];
+                toBeSortedTable[j] = table[i];
                 j++;
             }
         }
 
 
-        quicksort(validContacts, 0, j - 1);
+        quicksort(toBeSortedTable, 0, j - 1);
         for (int i = 0; i < j; i++) {
-            System.out.println(i + " " + validContacts[i].toString());
+            System.out.println(i + " " + toBeSortedTable[i].toString());
         }
     }
 
@@ -300,11 +301,12 @@ public class ContactsHashOpen implements IContactDB {
         }
     }
 
-    private void resizeTable() {
-        Contact[] oldTable = table;
+    private void resizeTable() { //mkae a new table of greater capacity and rehashes old values into it
+        System.out.println("RESIZING");
+        Contact[] oldTable = table; // copy the reference
         int oldCapacity = table.length;
-        int newCapacity = nextPrime(2 * oldCapacity);
-        table = new Contact[newCapacity];
+        int newCapacity =  nextPrime(2 * oldCapacity);
+        table = new Contact[newCapacity]; // make a new tyable
         numEntries = 0;
 
         for (int i = 0; i < oldCapacity; i++) {
@@ -314,7 +316,7 @@ public class ContactsHashOpen implements IContactDB {
         }
     }
 
-    // Helper method: returns the next prime number >= n.
+    //Helper method: returns the next prime number >= n.
     private int nextPrime(int n) {
         while (!isPrime(n)) {
             n++;
@@ -322,7 +324,7 @@ public class ContactsHashOpen implements IContactDB {
         return n;
     }
 
-    // Simple prime check.
+    //Helper method: simple prime check.
     private boolean isPrime(int n) {
         if (n <= 1) return false;
         for (int i = 2; i * i <= n; i++) {

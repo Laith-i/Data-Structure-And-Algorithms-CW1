@@ -16,7 +16,7 @@ public class CW1 {
     private static Scanner keyboard;
     private static String fileName = "no file choaen";
     
-    private static IContactDB db = new ContactsHashOpen(); 
+    private static IContactDB db = new ContactsHashChained(); //change to either chained / open addressing
     // change to ContactsHashChained for later part of Coursework 1
     // change to ContactsBST for Coursework 2
 
@@ -189,8 +189,10 @@ public class CW1 {
                 System.out.println("total number of  buckets visited = " + totalVisited);
                 System.out.printf("average number of  buckets visited =  %.2f\n",
                   totalVisited /(double)db.getNumEntries());
-                double finalLoad = db.loadFactor();
-                System.out.printf("load factor: %.2f%%\n", finalLoad);
+                System.out.println();
+                db.loadFactor();
+//                double finalLoad = db.loadFactor();
+//                System.out.printf("load factor: %.2f%%\n", finalLoad); debugger
             }
         } catch (FileNotFoundException ex) {
             System.out.println("Can't open chosen file " + fileName);
